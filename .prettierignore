@@ -1,0 +1,11 @@
+# Generated Prisma Client
+apps/api/generated/
+
+# Synced third-party agent skills
+apps/api/.agents/
+apps/api/.claude/
+apps/api/.cursor/
+apps/api/.devin/
+
+# Lockfiles
+**/package-lock.json
