@@ -14,21 +14,11 @@
 - `npm run format:check`
 - `npm run typecheck`
 - `npm test`
-  Run all four before every commit. CI runs exactly these four.
+  Run all four before every commit. These are the checks CI will run.
 
 ## Conventions
 
-- NestJS owns business rules, authorization and final validation.
-- Next.js communicates with NestJS through REST APIs.
-- NestJS owns the public API contract.
-- OpenAPI is the source of truth for generated frontend API clients.
-- Python Agent must access application data through backend tools.
-- Use Prisma for PostgreSQL access.
-- Use DTO validation for incoming API requests.
-- Return errors using RFC 9457 Problem Details.
-- Use database constraints and transactions for critical invariants.
-- Add tests for every business rule and error response.
-- The contract in `docs/contract/` is the source of truth. Code follows it.
+- The contract in `docs/contract/` is the source of truth. Code follows it. When `AGENTS.md` files are nested, the root file wins.
 - Errors are RFC 9457 problem details (`application/problem+json`) with a stable `type`, from one global exception filter.
 - Persistence sits behind repository interfaces so tests can use the in-memory one.
 - Money is calculated by plain code only, never by a model.
@@ -42,18 +32,15 @@
 - Never call a real model in unit tests; use fixtures.
 - Never edit a test, the eval data or a validator rule to make a check pass.
 - Never change code and its tests in the same commit just to turn CI green.
-- Never disable a failing quality check to make a PR green.
 - Never add `continue-on-error`, `|| true` or `--no-verify` to any check.
 - Never push to `main`, force-push, or rewrite history after a PR is opened.
 - Never let the Python agent touch the database directly.
 - Never edit a committed Prisma migration; add a new one.
 - Never run `prisma migrate reset` or `db push` on a shared database.
 - Never send names or emails to a model; only places and interests.
-- Never claim that a check passed unless it was executed.
-- Never let the LLM calculate money.
+- Never claim that a check passed unless it was executed. (AI-LOG 2026-11-17, 2f73325)
 - Never share a schedule before the Save operation.
-- Never initialize a nested Git repository inside an application workspace.
-- Never use Prisma configuration APIs from a different major version than the installed Prisma CLI.
+- Never use Prisma configuration APIs from a different major version than the installed Prisma CLI. (AI-LOG 2026-11-17, 2f73325)
 
 ## Permissions
 

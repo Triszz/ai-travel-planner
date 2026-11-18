@@ -14,13 +14,17 @@ out/
 # Local data
 pgdata/
 
-# Python (apps/agent, from PA#3)
+# Python (apps/ai-agent, from PA#3)
 __pycache__/
 *.pyc
 .venv/
+venv/
 .pytest_cache/
 .ruff_cache/
 .mypy_cache/
+
+# IDE
+.idea/
 
 # OS and logs
 .DS_Store
