@@ -1,0 +1,4 @@
+# Normalize line endings to LF for all text files in the repository.
+# This prevents spurious CRLF diffs on Windows and keeps `prettier --check`
+# green on Linux CI.
+* text=auto eol=lf
