@@ -2,14 +2,6 @@
 
 Team: 23127376 — Hồ Gia Huy · 23127503 — Trần Thanh Trí
 
-### #1 <date> <short title>
-
-- **Tool:**
-- **Task:**
-- **Changed:** what we edited or fixed in the AI output, and how we noticed
-- **Rejected:** what we refused, and why
-- **Rule added:** the line added to `AGENTS.md`, with commit hash (if any)
-
 ## 2026-11-16 — PA#2 rubric review and initial architecture
 
 - **Tool:** ChatGPT
@@ -36,3 +28,37 @@ Team: 23127376 — Hồ Gia Huy · 23127503 — Trần Thanh Trí
 - **Changed:** Updated the README development instructions to distinguish dependency installation, infrastructure startup, and frontend/backend development servers.
 - **Rejected:** Claiming that CI already runs the documented checks before a GitHub Actions workflow has been configured.
 - **By hand:** Ran the available checks and reviewed their results. Formatting, type checking, and tests passed; API lint remained blocked by the local Windows application-control policy.
+
+## 2026-11-16: Stack and repository layout
+ 
+- **Tool:** Claude (claude.ai chat).
+- **Asked for:** A PA#2 plan checked against the rubric, then the repository layout and first files.
+- **Kept:** Creating `.gitignore` and `.env.example` before the first commit; names-only env templates; keeping the Python agent and Redis out of the PA#2 checks.
+- **Changed:** The first plan assumed Node, Fastify and Vitest. Our team uses Next.js, NestJS and PostgreSQL with Prisma, so we asked again and got an npm-workspaces monorepo (`apps/api`, `apps/web`). We noticed because the commands and tools in the plan did not match our stack.
+- **Rejected:** Putting Python and Redis checks into CI before any code uses them.
+
+## 2026-11-16: Rules file for a mixed Claude Code and Cursor team
+ 
+- **Tool:** Claude (claude.ai chat).
+- **Asked for:** A rules file and three-tier permissions (allowed, ask first, never) for a team that uses both Claude Code and Cursor.
+- **Kept:** One main file, `AGENTS.md`, with Stack, Commands, Conventions, Never, Permissions and Enforcement; `CLAUDE.md` containing only `@AGENTS.md`; `.claude/settings.json` to enforce the "never" commands for Claude Code.
+- **Changed:** I planned to name the file `AGENT.md`. The assistant pointed out that tools read `AGENTS.md` (with an S), so we used that name. `.claude/settings.json` was extended with `ask` entries for `AGENTS.md`, `CLAUDE.md`, Prisma schema and migrations.
+- **Rejected:** Separate rule files for each tool (`.cursor/rules`, `.github/copilot-instructions.md`), because copies of the rules drift apart.
+- **Limit we accepted:** Cursor does not enforce permissions. For it, the rules are advice and branch protection with required CI is the real gate.
+
+## 2026-11-16: Where the `.env` files live
+ 
+- **Tool:** Claude (claude.ai chat).
+- **Asked for:** The environment templates and the README setup steps.
+- **Changed:** The assistant first said to keep a single `.env` at the repository root. I questioned it, because the web app and the backend each need their own file. The assistant agreed: Next.js reads only `apps/web`, and NestJS and Prisma run from `apps/api`. We committed three templates (`.env.example`, `apps/api/.env.example`, `apps/web/.env.example`), and the web template holds only `NEXT_PUBLIC_*` values, so no secret can reach the browser. In the README the web file is copied to `apps/web/.env` instead of the suggested `.env.local`.
+- **Rejected:** A single root `.env` shared by all apps.
+- **Check:** `git ls-files` shows only `.env.example` files tracked; the real `.env` is ignored.
+
+## 2026-11-16: First push and documents
+ 
+- **Tool:** Claude (claude.ai chat).
+- **Asked for:** Branch and commit names for the first push, and the README, DECISIONS and AI-LOG skeletons.
+- **Kept:** Pushing the setup through a pull request (PR #1).
+- **Changed:** The assistant suggested four small commits. I committed everything as one (`f2d58bb`). `docs/DECISIONS.md` was cut from six rows to two (stack, AI tools), because the other decisions (monorepo, contract endpoint, in-memory tests, who submits the zip) had not been made or done yet at that point; we only record a decision once it exists. Team member IDs replaced the README placeholders.
+- **Rejected:** Leaving `<team name>` and `<student IDs>` placeholders in the README.
+- **Rule added:** none from this commit.
