@@ -78,9 +78,9 @@ npm test        # currently runs workspace api only
 Four env files, all git-ignored; commit only the `.example` templates:
 
 - `.env` — root (Docker Compose variables: `POSTGRES_*`, `REDIS_*`)
-- `apps/api/.env` — NestJS + Prisma (`DATABASE_URL`, `JWT_SECRET`, `MODEL_*`, `OBSERVE_*`, …)
+- `apps/api/.env` — NestJS + Prisma (`DATABASE_URL`, `JWT_SECRET`, `PORT`, …)
 - `apps/web/.env` — Next.js (`NEXT_PUBLIC_*` only; no secrets)
-- `apps/ai-agent/.env` — Python agent (`AI_PROVIDER_*`, `BACKEND_INTERNAL_URL`, …) — PA#3
+- `apps/ai-agent/.env` — Python agent (`AI_PROVIDER_*`, `BACKEND_INTERNAL_URL`, …) — sole owner of model credentials in PA#3
 
 Real values live only in the `.env` files (git-ignored). Only `NEXT_PUBLIC_*` values may reach the browser, and they must not be secrets.
 
@@ -92,9 +92,9 @@ Permissions are written there in three tiers: allowed, ask first, never.
 ## Model and cost
 
 - PA#2 status: No model provider or API key is configured. No model calls are made.
-- Provider / model: Configure in `apps/api/.env` (`MODEL_*`) and `apps/ai-agent/.env` (`AI_PROVIDER_*`) before PA#3.
-- Cost per plan: Estimate after selecting provider and model.
-- Spending cap: **Must be set at the provider level and documented here before any key is activated.**
+- Provider / model: To be configured in `apps/ai-agent/.env` (`AI_PROVIDER_*`) in PA#3. Sole owner of model credentials.
+- Cost per plan: To be estimated after selecting provider and model in PA#3.
+- Spending cap: Must be set at the provider level and documented with an exact figure before any key is activated.
 
 ## Data credits
 
