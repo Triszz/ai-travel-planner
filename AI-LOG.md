@@ -65,9 +65,9 @@ Team: 23127376 — Hồ Gia Huy · 23127503 — Trần Thanh Trí
 
 ## 2026-11-18 — Fix rules, env templates, untrack skill files
 
-- **Tool:** Antigravity (Claude Sonnet)
-- **Asked for:** Fix accumulated issues from zip review: slim `AGENTS.md` Conventions, add `OBSERVE_*` env vars, remove hardcoded fallback secrets in `app.module.ts`, untrack 236 Prisma skill files from AI tool directories, add `.gitattributes` for LF normalisation, clarify README setup order.
+- **Tool:** Antigravity (Claude Sonnet / Gemini)
+- **Asked for:** Fix accumulated issues from zip review: slim `AGENTS.md` Conventions, remove Observe telemetry completely, untrack 236 Prisma skill files from AI tool directories, add `.gitattributes` for LF normalisation, clarify README setup order, and unify model key ownership.
 - **Kept:** `skills-lock.json` confirmed skill files are restorable before untracking. `.claude/settings.json` extended with 6 new `ask` entries and `Edit(./apps/*/.env)` deny rule.
-- **Changed:** `app.module.ts` — removed `ObserveModule` import and the `?? 'YOUR_APP_KEY'` / `?? 'YOUR_APP_SECRET'` fallbacks entirely; team does not use this service. README "exactly what CI runs" softened to "the checks CI will run" until a workflow exists. `npm test` noted as api-only currently.
-- **Rejected:** Rewriting history to remove the tracked skill files; used `git rm --cached` instead (normal commit, no force-push).
-- **Rule added:** "When `AGENTS.md` files are nested, the root file wins" added to Conventions (b0db066).
+- **Changed:** Initial attempt removed `ObserveModule` from `app.module.ts` but left `ObserveInstrument` in `main.ts`, which would break typecheck. Caught during code review; completely removed `@nestjs/observe` from `apps/api/package.json`, `main.ts`, and `.env.example`. Removed `MODEL_*` from API `.env.example` to make `apps/ai-agent` the sole owner of model credentials. Added `prisma:generate` script to `apps/api/package.json` to back the README instruction.
+- **Rejected:** Keeping hardcoded fallback secrets (`?? 'YOUR_APP_KEY'`) or leaving Observe half-removed. Rewriting history to remove tracked skill files was rejected in favor of `git rm --cached`.
+- **Rule added:** "When `AGENTS.md` files are nested, the root file wins" added to Conventions (b0db066). Linked `(AI-LOG 2026-11-17, 2f73325)` to "Never claim that a check passed unless it was executed".
