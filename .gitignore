@@ -23,6 +23,13 @@ venv/
 .ruff_cache/
 .mypy_cache/
 
+# AI tool skill caches (restorable from apps/api/skills-lock.json)
+apps/api/.agents/
+apps/api/.claude/
+apps/api/.cursor/
+apps/api/.devin/
+apps/api/.windsurf/
+
 # IDE
 .idea/
 
