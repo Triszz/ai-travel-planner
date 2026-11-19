@@ -14,7 +14,7 @@
 - `npm run format:check`
 - `npm run typecheck`
 - `npm test`
-  Run all four before every commit. These are the checks CI will run.
+Run all four before every commit. These are the checks `CI` runs.
 
 ## Conventions
 
