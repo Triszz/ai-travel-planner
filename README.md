@@ -64,7 +64,7 @@ Its implementation and dependency setup are not available in PA#2.
 
 ## Quality Checks
 
-These are the checks CI will run, from the repo root:
+These are the checks CI runs, from the repo root:
 
 ```bash
 npm run lint
