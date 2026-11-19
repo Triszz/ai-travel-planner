@@ -80,3 +80,12 @@ Team: 23127376 — Hồ Gia Huy · 23127503 — Trần Thanh Trí
 - **Changed:** `apps/api/AGENTS.md` (removed "Production data: NestJS Observe" section) and `apps/api/README.md` (removed Observability section and link command) to prevent coding assistants from trying to configure or rely on Observe. Clarified in root `AGENTS.md` that Redis is not yet used in PA#2.
 - **Rejected:** Leaving stale Observe documentation in workspace scaffold files; deleting workspace lockfiles prematurely before `npm ci` is verified on CI.
 - **Note:** These leftovers were caught by manual peer review of the merged PRs rather than automated checks, highlighting the value of code review over automated linters alone.
+
+## 2026-11-19: Fresh-clone verification of the four quality commands
+
+- **Tool:** Claude (claude.ai chat).
+- **Asked for:** A review of the lint, format, type check and test setup, then help diagnosing failures from a fresh clone.
+- **Changed:** The assistant could only read the repository, not run the commands. Running them on a fresh clone found problems its review had not confirmed: a trailing blank line left in `apps/api/src/main.ts` (8bea446) and `apps/api/AGENTS.md` (3c1c3c7) by the Observe cleanup; `LayoutProps` missing because Next.js generates it into the git-ignored `.next/`; and `next-env.d.ts` (generated, git-ignored) being checked by Prettier, so `format:check` depended on command order. We also changed the assistant's plan: Docker was too slow, so we ran the commands directly on Windows in a new clone, and Prettier was not installed in the main working copy, so we ran the one from the fresh clone. Each fix is a separate commit (hashes in the evidence file).
+- **Rejected:** Replacing `LayoutProps` with a hand-written type in `layout.tsx`. We generate the types with `next typegen` instead, so app code is not changed just to satisfy a check.
+- **Not done, on purpose:** `npm audit fix --force`. `npm audit` reports 12 vulnerabilities, and the fix would rewrite `package-lock.json`, so it is left for a separate PR.
+- **Result:** All four commands exit 0 on commit `31eea01`. Details in `docs/evidence/fresh-clone-verification.md`.
