@@ -71,3 +71,12 @@ Team: 23127376 — Hồ Gia Huy · 23127503 — Trần Thanh Trí
 - **Changed:** Initial attempt removed `ObserveModule` from `app.module.ts` but left `ObserveInstrument` in `main.ts`, which would break typecheck. Caught during code review; completely removed `@nestjs/observe` from `apps/api/package.json`, `main.ts`, and `.env.example`. Removed `MODEL_*` from API `.env.example` to make `apps/ai-agent` the sole owner of model credentials. Added `prisma:generate` script to `apps/api/package.json` to back the README instruction.
 - **Rejected:** Keeping hardcoded fallback secrets (`?? 'YOUR_APP_KEY'`) or leaving Observe half-removed. Rewriting history to remove tracked skill files was rejected in favor of `git rm --cached`.
 - **Rule added:** "When `AGENTS.md` files are nested, the root file wins" added to Conventions (b0db066). Linked `(AI-LOG 2026-11-17, 2f73325)` to "Never claim that a check passed unless it was executed".
+
+## 2026-11-19 — Remove Observe leftovers and align scaffold docs
+
+- **Tool:** Antigravity (Gemini)
+- **Asked for:** Clean up Observe leftovers discovered during peer review: drop `@nestjs/observe` from root `package-lock.json`, remove stale Observe documentation from `apps/api/AGENTS.md` and `apps/api/README.md`, and clarify Redis status in root `AGENTS.md`.
+- **Kept:** Removing only the Observe dependency and its 62-line `apps/api/node_modules/@nestjs/observe` block from root `package-lock.json`, keeping all other lock entries intact.
+- **Changed:** `apps/api/AGENTS.md` (removed "Production data: NestJS Observe" section) and `apps/api/README.md` (removed Observability section and link command) to prevent coding assistants from trying to configure or rely on Observe. Clarified in root `AGENTS.md` that Redis is not yet used in PA#2.
+- **Rejected:** Leaving stale Observe documentation in workspace scaffold files; deleting workspace lockfiles prematurely before `npm ci` is verified on CI.
+- **Note:** These leftovers were caught by manual peer review of the merged PRs rather than automated checks, highlighting the value of code review over automated linters alone.

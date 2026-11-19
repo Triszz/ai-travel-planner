@@ -5,7 +5,7 @@
 - Monorepo (npm workspaces): `apps/api` (NestJS, TypeScript strict), `apps/web` (Next.js)
 - `apps/ai-agent` (Python, LLM orchestration): placeholder until PA#3
 - PostgreSQL + Prisma (`apps/api/prisma`); Docker for local dev
-- Redis
+- Redis (not used yet in PA#2)
 - Vitest + Supertest (API tests), Oxlint (API), ESLint (Web), Prettier. PA#2 contract tests use an in-memory repository, no database.
 
 ## Commands (from repo root)
