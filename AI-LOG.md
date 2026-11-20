@@ -89,3 +89,11 @@ Team: 23127376 — Hồ Gia Huy · 23127503 — Trần Thanh Trí
 - **Rejected:** Replacing `LayoutProps` with a hand-written type in `layout.tsx`. We generate the types with `next typegen` instead, so app code is not changed just to satisfy a check.
 - **Not done, on purpose:** `npm audit fix --force`. `npm audit` reports 12 vulnerabilities, and the fix would rewrite `package-lock.json`, so it is left for a separate PR.
 - **Result:** All four commands exit 0 on commit `31eea01`. Details in `docs/evidence/fresh-clone-verification.md`.
+
+## 2026-11-19: GitHub Actions CI and branch protection
+
+- **Tool:** Claude (claude.ai chat).
+- **Asked for:** The CI workflow, the branch protection settings, the red-CI demonstration, and help diagnosing CI failures.
+- **Changed:** The first CI run failed at the Lint step on the Linux runner (`Cannot find native binding` from oxlint), although the same four commands passed on Windows. The assistant suspected a lockfile created on Windows without Linux bindings, then doubted this because a `grep` for `linux-x64` returned matches. Listing the lockfile entries for oxlint showed only `win32` packages; the `grep` had matched declared optional dependencies, not installed ones. We regenerated `package-lock.json` (<hash>) and checked that `@oxlint/binding-linux-x64-gnu` was now present. After that, `format:check` failed on six `apps/web` files. The cause was CRLF line endings in our local working copy (`git ls-files --eol` showed `i/lf w/crlf`), not the repository content, so CI was not affected; we fixed it locally with `prettier --write`.
+- **Not done, on purpose:** Switching the runner to `windows-latest` (it would hide the problem); using `npm install` instead of `npm ci` in CI; adding `apps/web` to `.prettierignore` to silence the check.
+- **Result:** CI is green, `main` requires the `check` status check, and the red-to-green demonstration is in <PR link>. Details in `docs/evidence/ci-and-branch-protection.md`.
