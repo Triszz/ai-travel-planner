@@ -97,3 +97,37 @@ Team: 23127376 — Hồ Gia Huy · 23127503 — Trần Thanh Trí
 - **Changed:** The first CI run failed at the Lint step on the Linux runner (`Cannot find native binding` from oxlint), although the same four commands passed on Windows. The assistant suspected a lockfile created on Windows without Linux bindings, then doubted this because a `grep` for `linux-x64` returned matches. Listing the lockfile entries for oxlint showed only `win32` packages; the `grep` had matched declared optional dependencies, not installed ones. We regenerated `package-lock.json` (<hash>) and checked that `@oxlint/binding-linux-x64-gnu` was now present. After that, `format:check` failed on six `apps/web` files. The cause was CRLF line endings in our local working copy (`git ls-files --eol` showed `i/lf w/crlf`), not the repository content, so CI was not affected; we fixed it locally with `prettier --write`.
 - **Not done, on purpose:** Switching the runner to `windows-latest` (it would hide the problem); using `npm install` instead of `npm ci` in CI; adding `apps/web` to `.prettierignore` to silence the check.
 - **Result:** CI is green, `main` requires the `check` status check, and the red-to-green demonstration is in <PR link>. Details in `docs/evidence/ci-and-branch-protection.md`.
+
+## 2026-11-20 — Contract test planning for POST /plans/{planId}/save
+
+**Tool:** ChatGPT.
+**Asked for:** A senior-engineer review of the project brief, the selected Save endpoint contract, and a test strategy aligned with the PA#2 rubric.
+**Kept:** Treating the approved endpoint contract as the source of truth; organizing coverage around authentication and ownership, request validation, plan validation, budget rules, idempotency, publication lifecycle, RFC 9457 errors, security, and CI. The proposed test layers are unit tests, NestJS E2E tests with in-memory repositories, PostgreSQL integration tests, and fault-injection tests.
+**Changed:** The initial test approach was expanded beyond checking HTTP status codes. The plan now includes response content types and Problem Details fields, persistence side effects, absence of side effects after failures, authorization at commit time, replay behavior, and concurrent publication scenarios.
+**Rejected:** Starting implementation before the contract and test matrix were sufficiently clear. Also rejected treating the existing Hello World tests as evidence that the Save endpoint was already covered; the repository still had only the application scaffold and basic tests at this stage.
+**By hand:** Inspected the repository structure, package scripts, existing NestJS tests, and the available Prisma files. Reviewed the endpoint scope and prepared the test-planning documents.
+
+## 2026-11-21 — Review and revision of the Plan Save contract test matrix
+
+**Tool:** ChatGPT.
+**Asked for:** A critical review of the Plan Save test matrix against the approved contract, especially authorization, ETag preconditions, idempotency, budget enforcement, transaction behavior, and the PA#2 test-quality requirements.
+**Kept:** The revised matrix structure and its scenario-based coverage. The latest version separates unit, NestJS E2E, PostgreSQL integration, and fault-injection responsibilities. It also includes deliberate contract-break checks and requires deterministic tests without real LLM calls or external network dependencies.
+**Changed:** Refined several scenarios to remove ambiguity and overlapping assertions:
+
+- Distinguished a retry while the first request is still processing from a retry after the first request has completed.
+- Clarified that concurrent requests using different valid idempotency keys for the same revision must not create duplicate publications or publish events.
+- Made backend-computed costs authoritative; model-generated cost values are treated as untrusted input.
+- Clarified transaction-failure expectations: no partial durable publication or idempotency result, and no publish event before a successful commit.
+- Removed duplicate or overlapping test cases and aligned the expected outcomes with the contract's status codes and Problem Details types.
+- Added explicit checks for authorization before returning an idempotency replay, replay after the source plan advances, and saving an already-published older revision.
+  **Rejected:** Using a generic inaccessible-resource response where the contract defines a specific error; assuming that a database rollback can undo an event already emitted to an external system; and treating an in-memory repository as sufficient evidence for PostgreSQL transaction and concurrency guarantees.
+  **By hand:** Revised `docs/contract/POST-plans-planId-save-contract.md` and prepared the updated `docs/contract/plan-save-test-matrix.md`. Reviewed the changes with `git status` and kept the work on the `feat/contract-tests` branch.
+
+## 2026-11-21 — Test architecture and implementation boundaries
+
+**Tool:** ChatGPT.
+**Asked for:** A repository-specific test architecture and an implementation roadmap for the Save endpoint, based on the actual NestJS, Vitest, Supertest, Prisma, and PostgreSQL setup.
+**Kept:** Testing pure business rules in isolation; testing the HTTP contract through a real NestJS application; and reserving real PostgreSQL integration tests for transaction atomicity, uniqueness constraints, and concurrency. The proposed application boundary uses repositories and transaction-related ports so business logic can be tested without mocking the entire service.
+**Changed:** Separated what each test layer can prove. In-memory E2E tests are intended to verify HTTP and application behavior, while PostgreSQL tests must verify database-specific guarantees. Fault-injection tests are reserved for uncertain commit outcomes and failures during publication persistence.
+**Rejected:** Using SQLite or an in-memory database as a substitute for PostgreSQL concurrency tests; mocking the whole application service in E2E tests; and claiming that a test passes or that CI enforces a behavior before actually running the relevant check.
+**By hand:** Reviewed the proposed architecture and implementation sequence. The next step is to inspect the remaining bootstrap and Prisma configuration details, then implement the tests against the agreed contract. No Save endpoint implementation or complete contract test suite has been claimed as finished in this entry.
