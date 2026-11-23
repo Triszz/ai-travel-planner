@@ -3,10 +3,25 @@ import { AuthenticationGuard } from '../auth/authentication.guard.js';
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request } from 'express';
 import { ProblemDetailsException } from '../common/http/problem-details.exception.js';
+import { Inject } from '@nestjs/common';
 
+import type { PlanRepository } from './repositories/plan.repository.js';
+import type { GroupMemberRepository } from './repositories/group-member.repository.js';
+
+import {
+  PLAN_REPOSITORY,
+  GROUP_MEMBER_REPOSITORY,
+} from './repositories/repository.tokens.js';
 @Controller('plans')
 @UseGuards(AuthenticationGuard)
 export class PlansController {
+  constructor(
+    @Inject(PLAN_REPOSITORY)
+    private readonly planRepository: PlanRepository,
+
+    @Inject(GROUP_MEMBER_REPOSITORY)
+    private readonly groupMemberRepository: GroupMemberRepository,
+  ) {}
   private validateRequest(
     planId: string,
     request: RawBodyRequest<Request>,
@@ -91,12 +106,77 @@ export class PlansController {
       });
     }
   }
+
   @Post(':planId/save')
-  savePlan(
+  async savePlan(
     @Param('planId') planId: string,
     @Req() request: RawBodyRequest<Request>,
   ) {
     this.validateRequest(planId, request);
+
+    const userId = (
+      request as Request & {
+        user: { userId: string };
+      }
+    ).user.userId;
+
+    const plan = await this.planRepository.findById(planId);
+
+    // 1. Plan must exist.
+    if (!plan) {
+      throw new ProblemDetailsException({
+        status: 404,
+        code: 'plan-not-found',
+        title: 'Not Found',
+        detail: 'The requested plan was not found.',
+      });
+    }
+
+    // 2. Only the plan owner may publish it.
+    // Check ownership before revealing any plan state.
+    if (plan.ownerId !== userId) {
+      throw new ProblemDetailsException({
+        status: 404,
+        code: 'plan-not-found',
+        title: 'Not Found',
+        detail: 'The requested plan was not found.',
+      });
+    }
+
+    // 3. An existing plan must have a group association.
+    if (!plan.groupId) {
+      throw new ProblemDetailsException({
+        status: 409,
+        code: 'plan-state-conflict',
+        title: 'Conflict',
+        detail: 'The plan does not have a valid group association.',
+      });
+    }
+
+    // 4. The owner must still be an active member of the group.
+    const membership = await this.groupMemberRepository.findByGroupAndUser(
+      plan.groupId,
+      userId,
+    );
+
+    if (!membership || membership.status !== 'active') {
+      throw new ProblemDetailsException({
+        status: 404,
+        code: 'plan-not-found',
+        title: 'Not Found',
+        detail: 'The requested plan was not found.',
+      });
+    }
+
+    // 5. Only after authorization checks, validate lifecycle state.
+    if (plan.status === 'archived' || plan.status === 'deleted') {
+      throw new ProblemDetailsException({
+        status: 409,
+        code: 'plan-state-conflict',
+        title: 'Conflict',
+        detail: 'The plan is not in a state that allows publishing.',
+      });
+    }
 
     return {
       planId,

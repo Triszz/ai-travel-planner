@@ -12,11 +12,20 @@ export async function createTestApp() {
     .overrideProvider(ACCESS_TOKEN_VERIFIER)
     .useValue({
       async verify(token: string): Promise<{ userId: string }> {
-        if (token === 'valid-test-token') {
-          return { userId: 'test-user' };
+        const users: Record<string, string> = {
+          'valid-test-token': 'test-user',
+          'owner-token': 'owner-user',
+          'member-token': 'member-user',
+          'stranger-token': 'stranger-user',
+        };
+
+        const userId = users[token];
+
+        if (!userId) {
+          throw new InvalidAccessTokenError();
         }
 
-        throw new InvalidAccessTokenError();
+        return { userId };
       },
     })
     .compile();
