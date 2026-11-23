@@ -45,6 +45,15 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       headers = {
         'WWW-Authenticate': 'Bearer',
       };
+    } else if (
+      exception instanceof HttpException &&
+      exception.getStatus() === 400 &&
+      exception.message === 'Unexpected end of JSON input'
+    ) {
+      status = 400;
+      code = 'invalid-request-body';
+      title = 'Bad Request';
+      detail = 'The request body must be valid JSON.';
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       code = 'http-error';

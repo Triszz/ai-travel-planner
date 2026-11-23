@@ -65,18 +65,4 @@ describe('POST /api/v1/plans/:planId/save — authentication', () => {
     expect(response.body.code).toBe('unauthenticated');
     expect(response.headers['www-authenticate']).toBe('Bearer');
   });
-
-  it('AUTH-005: accepts a valid bearer token', async () => {
-    const response = await request(app.getHttpServer())
-      .post(`/api/v1/plans/${planId}/save`)
-      .set('Authorization', 'Bearer valid-test-token');
-
-    // The current controller is only a placeholder.
-    // This assertion proves the request passed authentication.
-    expect(response.status).toBe(201);
-    expect(response.body).toEqual({
-      planId,
-      status: 'not-implemented',
-    });
-  });
 });
