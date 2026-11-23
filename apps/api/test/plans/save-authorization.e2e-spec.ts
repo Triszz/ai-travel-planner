@@ -30,6 +30,17 @@ describe('POST /api/v1/plans/:planId/save — authorization', () => {
       id: groupId,
       budgetVnd: 5_000_000,
     });
+
+    const revision = {
+      id: 'revision-001',
+      planId,
+      revisionNumber: 1,
+      content: null,
+      etag: '"plan-550e8400-rev-1"',
+      createdAt: new Date('2026-11-22T10:00:00.000Z'),
+    };
+
+    store.revisions.set(revision.id, revision);
   });
 
   afterEach(async () => {
@@ -61,7 +72,7 @@ describe('POST /api/v1/plans/:planId/save — authorization', () => {
     );
     expect(response.body).toMatchObject({
       status: 404,
-      code: 'plan-not-found',
+      code: 'PLAN_NOT_FOUND',
       type: 'urn:ai-travel-planner:problems:plan-not-found',
     });
   }
@@ -71,13 +82,21 @@ describe('POST /api/v1/plans/:planId/save — authorization', () => {
 
     const response = await saveAs('owner-token');
 
-    // Stage 2 only establishes authorization.
-    // The save operation is still a placeholder at this point.
-    expect(response.status).toBe(201);
-    expect(response.body).toEqual({
-      planId,
-      status: 'not-implemented',
+    // Authorization passed; request reached plan validation.
+    expect(response.status).toBe(422);
+    expect(response.body).toMatchObject({
+      status: 422,
+      code: 'PLAN_VALIDATION_FAILED',
+      type: 'urn:ai-travel-planner:problems:plan-validation-failed',
     });
+
+    expect(response.body.violations).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'SCHEDULE_INVALID',
+        }),
+      ]),
+    );
   });
 
   it('AUTHZ-002: rejects another active group member who does not own the plan', async () => {
@@ -155,7 +174,26 @@ describe('POST /api/v1/plans/:planId/save — authorization', () => {
     );
     expect(response.body).toMatchObject({
       status: 409,
-      code: 'plan-state-conflict',
+      code: 'PLAN_STATE_CONFLICT',
+      type: 'urn:ai-travel-planner:problems:plan-state-conflict',
+    });
+  });
+
+  it('AUTHZ-011: returns plan-state-conflict when the associated group does not exist', async () => {
+    addMember('owner-user', 'active');
+
+    // Keep the plan's groupId, but remove the actual group.
+    store.groups.delete(groupId);
+
+    const response = await saveAs('owner-token');
+
+    expect(response.status).toBe(409);
+    expect(response.headers['content-type']).toMatch(
+      /application\/problem\+json/,
+    );
+    expect(response.body).toMatchObject({
+      status: 409,
+      code: 'PLAN_STATE_CONFLICT',
       type: 'urn:ai-travel-planner:problems:plan-state-conflict',
     });
   });
@@ -176,7 +214,7 @@ describe('POST /api/v1/plans/:planId/save — authorization', () => {
     );
     expect(response.body).toMatchObject({
       status: 409,
-      code: 'plan-state-conflict',
+      code: 'PLAN_STATE_CONFLICT',
       type: 'urn:ai-travel-planner:problems:plan-state-conflict',
     });
   });
@@ -197,7 +235,7 @@ describe('POST /api/v1/plans/:planId/save — authorization', () => {
     );
     expect(response.body).toMatchObject({
       status: 409,
-      code: 'plan-state-conflict',
+      code: 'PLAN_STATE_CONFLICT',
       type: 'urn:ai-travel-planner:problems:plan-state-conflict',
     });
   });

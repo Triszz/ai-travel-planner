@@ -41,7 +41,7 @@ describe('POST /api/v1/plans/:planId/save — request envelope', () => {
 
     expect(response.body.status).toBe(status);
     expect(response.body.type).toBe(`urn:ai-travel-planner:problems:${code}`);
-    expect(response.body.code).toBe(code);
+    expect(response.body.code).toBe(code.replace(/-/g, '_').toUpperCase());
     expect(response.body.instance).toBe(`/api/v1/plans/${targetPlanId}/save`);
     expect(typeof response.body.title).toBe('string');
     expect(response.body.title.length).toBeGreaterThan(0);

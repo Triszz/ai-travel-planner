@@ -167,3 +167,21 @@ Team: 23127376 — Hồ Gia Huy · 23127503 — Trần Thanh Trí
 **Changed:** Corrected the proposed sequence: the test matrix had already been prepared, so the next step is to turn its applicable scenarios into executable tests, run them against the current application to establish the expected failures, and only then implement the service and controller. Test responsibilities remain separated between unit tests, NestJS E2E tests with in-memory repositories, PostgreSQL integration tests and fault-injection tests.
 **Rejected:** Treating the Markdown test matrix as proof that executable contract tests already exist; implementing the endpoint first and writing tests afterward; and claiming that in-memory tests prove PostgreSQL transaction atomicity or concurrency guarantees.
 **By hand:** Prepared the revised test matrix before this discussion and reviewed the proposed test-first sequence. The existence and current status of executable Save endpoint tests still need to be verified in the repository.
+
+## 2026-11-23 — Phase 2.1: Save endpoint authorization
+
+**Tool:** ChatGPT.
+**Asked for:** Review and guide the implementation of the authorization checks for `POST /plans/{planId}/save` against the approved endpoint contract.
+**Kept:** Owner-only access, the requirement that the owner must be an active member of the associated group, and the contract's indistinguishable `404 plan-not-found` response for missing plans, non-owners and inactive or missing memberships.
+**Changed:** Extended the controller to check plan ownership and active group membership before proceeding to later state checks. Moved the associated-group existence lookup after membership verification to avoid revealing group state to unauthorized callers. Added authorization test coverage, including the inactive-membership case (`AUTHZ-011`).
+**Rejected:** Returning different errors for a non-owner and an inactive member, and checking whether the associated group exists before verifying the caller's active membership.
+**By hand:** Implemented the controller and test changes, then ran the relevant API checks. The reported unit and E2E test results passed; these results were reported by the developer and were not independently executed by ChatGPT.
+
+## 2026-11-23 — Phase 3: Plan and budget validation integration
+
+**Tool:** ChatGPT.
+**Asked for:** Review and guide the integration of revision resolution, schedule validation and backend budget enforcement into the Save endpoint, following the approved contract.
+**Kept:** Resolving the exact plan revision from the `If-Match` ETag; rejecting stale revisions with `412 plan-revision-conflict`; validating the resolved revision through `DefaultPlanValidator`; and returning `422` Problem Details for validation and budget failures.
+**Changed:** Integrated the revision repository and validator into `PlansController`. Separated `plan-validation-failed` from `budget-exceeded`, including distinct violation codes for member spending-cap and group-budget failures. Added safe aggregate budget information to budget error responses while excluding per-member spending details. Kept the group-existence lookup after active-membership authorization.
+**Rejected:** Treating a successful schedule validation as proof that the budget passed; trusting client- or model-provided cost values; exposing `memberSpending` in error responses; and treating the controller's default `201` response as proof that a publication had been created.
+**By hand:** Implemented the controller integration, updated validation violation codes and group-budget messages, and added E2E coverage for successful validation, schedule-validation failure, member spending-cap failure and group-budget failure. The developer reported that API type checking passed, 82 unit tests and 33 E2E tests passed, lint and format checks passed, and `git diff --check` reported no issues. Publication persistence and idempotency remain for Phase 4.

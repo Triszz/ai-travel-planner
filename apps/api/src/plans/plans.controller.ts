@@ -7,11 +7,15 @@ import { Inject } from '@nestjs/common';
 
 import type { PlanRepository } from './repositories/plan.repository.js';
 import type { GroupMemberRepository } from './repositories/group-member.repository.js';
-
+import type { GroupRepository } from './repositories/group.repository.js';
 import {
   PLAN_REPOSITORY,
+  PLAN_REVISION_REPOSITORY,
+  GROUP_REPOSITORY,
   GROUP_MEMBER_REPOSITORY,
 } from './repositories/repository.tokens.js';
+import { DefaultPlanValidator } from './domain/plan-validator.impl.js';
+import type { PlanRevisionRepository } from './repositories/plan-revision.repository.js';
 @Controller('plans')
 @UseGuards(AuthenticationGuard)
 export class PlansController {
@@ -21,6 +25,14 @@ export class PlansController {
 
     @Inject(GROUP_MEMBER_REPOSITORY)
     private readonly groupMemberRepository: GroupMemberRepository,
+
+    @Inject(GROUP_REPOSITORY)
+    private readonly groupRepository: GroupRepository,
+
+    @Inject(PLAN_REVISION_REPOSITORY)
+    private readonly planRevisionRepository: PlanRevisionRepository,
+
+    private readonly planValidator: DefaultPlanValidator,
   ) {}
   private validateRequest(
     planId: string,
@@ -33,7 +45,8 @@ export class PlansController {
     if (!uuidPattern.test(planId)) {
       throw new ProblemDetailsException({
         status: 400,
-        code: 'invalid-plan-id',
+        type: 'invalid-plan-id',
+        code: 'INVALID_PLAN_ID',
         title: 'Bad Request',
         detail: 'The planId must be a valid UUID.',
       });
@@ -48,7 +61,8 @@ export class PlansController {
     if (contentType !== 'application/json') {
       throw new ProblemDetailsException({
         status: 415,
-        code: 'unsupported-media-type',
+        type: 'unsupported-media-type',
+        code: 'UNSUPPORTED_MEDIA_TYPE',
         title: 'Unsupported Media Type',
         detail: 'Content-Type must be application/json.',
       });
@@ -60,7 +74,8 @@ export class PlansController {
     if (rawBody && rawBody.length > 0) {
       throw new ProblemDetailsException({
         status: 400,
-        code: 'invalid-request-body',
+        type: 'invalid-request-body',
+        code: 'INVALID_REQUEST_BODY',
         title: 'Bad Request',
         detail: 'The request body must be empty.',
       });
@@ -75,7 +90,8 @@ export class PlansController {
     ) {
       throw new ProblemDetailsException({
         status: 400,
-        code: 'invalid-idempotency-key',
+        type: 'invalid-idempotency-key',
+        code: 'INVALID_IDEMPOTENCY_KEY',
         title: 'Bad Request',
         detail:
           'Idempotency-Key must contain 1 to 128 printable ASCII characters.',
@@ -88,7 +104,8 @@ export class PlansController {
     if (ifMatch === undefined) {
       throw new ProblemDetailsException({
         status: 428,
-        code: 'precondition-required',
+        type: 'precondition-required',
+        code: 'PRECONDITION_REQUIRED',
         title: 'Precondition Required',
         detail: 'The If-Match header is required.',
       });
@@ -100,7 +117,8 @@ export class PlansController {
     ) {
       throw new ProblemDetailsException({
         status: 400,
-        code: 'invalid-if-match',
+        type: 'invalid-if-match',
+        code: 'INVALID_IF_MATCH',
         title: 'Bad Request',
         detail: 'If-Match must contain exactly one supported strong ETag.',
       });
@@ -126,7 +144,8 @@ export class PlansController {
     if (!plan) {
       throw new ProblemDetailsException({
         status: 404,
-        code: 'plan-not-found',
+        type: 'plan-not-found',
+        code: 'PLAN_NOT_FOUND',
         title: 'Not Found',
         detail: 'The requested plan was not found.',
       });
@@ -137,7 +156,8 @@ export class PlansController {
     if (plan.ownerId !== userId) {
       throw new ProblemDetailsException({
         status: 404,
-        code: 'plan-not-found',
+        type: 'plan-not-found',
+        code: 'PLAN_NOT_FOUND',
         title: 'Not Found',
         detail: 'The requested plan was not found.',
       });
@@ -147,7 +167,8 @@ export class PlansController {
     if (!plan.groupId) {
       throw new ProblemDetailsException({
         status: 409,
-        code: 'plan-state-conflict',
+        type: 'plan-state-conflict',
+        code: 'PLAN_STATE_CONFLICT',
         title: 'Conflict',
         detail: 'The plan does not have a valid group association.',
       });
@@ -162,25 +183,127 @@ export class PlansController {
     if (!membership || membership.status !== 'active') {
       throw new ProblemDetailsException({
         status: 404,
-        code: 'plan-not-found',
+        type: 'plan-not-found',
+        code: 'PLAN_NOT_FOUND',
         title: 'Not Found',
         detail: 'The requested plan was not found.',
       });
     }
 
-    // 5. Only after authorization checks, validate lifecycle state.
-    if (plan.status === 'archived' || plan.status === 'deleted') {
+    // 5. The associated group must exist.
+    const group = await this.groupRepository.findById(plan.groupId);
+
+    if (!group) {
       throw new ProblemDetailsException({
         status: 409,
-        code: 'plan-state-conflict',
+        type: 'plan-state-conflict',
+        code: 'PLAN_STATE_CONFLICT',
         title: 'Conflict',
         detail: 'The plan is not in a state that allows publishing.',
       });
     }
 
-    return {
+    // 6. Only after authorization checks, validate lifecycle state.
+    if (plan.status === 'archived' || plan.status === 'deleted') {
+      throw new ProblemDetailsException({
+        status: 409,
+        type: 'plan-state-conflict',
+        code: 'PLAN_STATE_CONFLICT',
+        title: 'Conflict',
+        detail: 'The plan is not in a state that allows publishing.',
+      });
+    }
+
+    // 7. Resolve the revision identified by If-Match.
+    const ifMatch = request.headers['if-match'] as string;
+
+    const revision = await this.planRevisionRepository.findByEtag(
       planId,
-      status: 'not-implemented',
-    };
+      ifMatch,
+    );
+
+    // 8. The supplied revision must be the current revision.
+    if (
+      !revision ||
+      revision.id !== plan.currentRevisionId ||
+      revision.revisionNumber !== plan.currentRevisionNumber
+    ) {
+      const currentRevision = await this.planRevisionRepository.findById(
+        plan.currentRevisionId,
+      );
+
+      throw new ProblemDetailsException({
+        status: 412,
+        type: 'plan-revision-conflict',
+        code: 'PLAN_REVISION_CONFLICT',
+        title: 'Precondition Failed',
+        detail: 'The plan has changed since the supplied revision.',
+        headers: currentRevision ? { ETag: currentRevision.etag } : {},
+      });
+    }
+
+    // 9. Validate the exact revision identified by If-Match.
+    const validationResult = await this.planValidator.validate(
+      revision.content,
+      {
+        planId,
+        revisionId: revision.id,
+        revisionNumber: revision.revisionNumber,
+      },
+    );
+
+    if (validationResult.validation.status === 'failed') {
+      const isBudgetExceeded = validationResult.validation.violations.some(
+        (violation) =>
+          violation.code === 'BUDGET_EXCEEDED' ||
+          violation.code === 'GROUP_BUDGET_EXCEEDED',
+      );
+
+      if (isBudgetExceeded) {
+        const budget = validationResult.budget;
+
+        if (!budget) {
+          throw new Error(
+            'Budget result is missing for a budget validation failure.',
+          );
+        }
+
+        throw new ProblemDetailsException({
+          status: 422,
+          type: 'budget-exceeded',
+          code: 'BUDGET_EXCEEDED',
+          title: 'Budget Exceeded',
+          detail: 'The plan exceeds the applicable budget or spending cap.',
+          extensions: {
+            planId,
+            planRevision: revision.revisionNumber,
+            violations: validationResult.validation.violations,
+            cost: {
+              currency: budget.currency,
+              groupTotal: budget.groupTotal,
+              groupBudget: budget.groupBudget,
+              lowestMemberSpendingCap: budget.lowestMemberSpendingCap,
+              withinGroupBudget: budget.withinGroupBudget,
+              withinMemberCaps: budget.withinMemberCaps,
+              passed: budget.passed,
+            },
+          },
+        });
+      }
+
+      throw new ProblemDetailsException({
+        status: 422,
+        type: 'plan-validation-failed',
+        code: 'PLAN_VALIDATION_FAILED',
+        title: 'Plan Validation Failed',
+        detail:
+          'The current plan revision has one or more validator violations.',
+        extensions: {
+          planId,
+          planRevision: revision.revisionNumber,
+          violations: validationResult.validation.violations,
+        },
+      });
+    }
   }
 }
