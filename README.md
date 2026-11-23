@@ -70,7 +70,7 @@ These are the checks CI runs, from the repo root:
 npm run lint
 npm run format:check
 npm run typecheck
-npm test        # currently runs workspace api only
+npm test        # runs API unit tests and E2E tests
 ```
 
 ## Environment variables
@@ -78,7 +78,7 @@ npm test        # currently runs workspace api only
 Four env files, all git-ignored; commit only the `.example` templates:
 
 - `.env` — root (Docker Compose variables: `POSTGRES_*`, `REDIS_*`)
-- `apps/api/.env` — NestJS + Prisma (`DATABASE_URL`, `JWT_SECRET`, `PORT`, …)
+- `apps/api/.env` — NestJS + Prisma (`DATABASE_URL`, `JWT_PUBLIC_KEY`, `JWT_ISSUER`, `JWT_AUDIENCE`, `PORT`, …)
 - `apps/web/.env` — Next.js (`NEXT_PUBLIC_*` only; no secrets)
 - `apps/ai-agent/.env` — Python agent (`AI_PROVIDER_*`, `BACKEND_INTERNAL_URL`, …) — sole owner of model credentials in PA#3
 

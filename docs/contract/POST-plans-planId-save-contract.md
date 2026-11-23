@@ -312,25 +312,25 @@ The server MUST return the documented `type` URI and status for each error. The 
 
 ### 6.1 Error catalogue
 
-| HTTP status | `type` suffix                               | Meaning                                                                                                                                    |
-| ----------: | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-|       `400` | `/problems/invalid-if-match`                | `If-Match` is malformed, weak, wildcard, or contains multiple ETag values.                                                                 |
-|       `400` | `/problems/invalid-plan-id`                 | The `planId` path parameter is not a valid UUID.                                                                                           |
-|       `400` | `/problems/invalid-request-body`            | The request body must be empty.                                                                                                            |
-|       `400` | `/problems/invalid-idempotency-key`         | The `Idempotency-Key` is missing or does not match the accepted format.                                                                    |
-|       `401` | `/problems/unauthenticated`                 | Missing, invalid, or expired bearer token.                                                                                                 |
-|       `404` | `/problems/plan-not-found`                  | Plan does not exist, caller is not its owner, or caller is no longer an active member of the associated group.                             |
-|       `409` | `/problems/plan-state-conflict`             | Plan exists but is deleted, archived, has no valid required group association, or is in another lifecycle state that prevents publication. |
-|       `409` | `/problems/idempotency-key-reused`          | The same key was previously used with a different request fingerprint.                                                                     |
-|       `409` | `/problems/idempotency-request-in-progress` | A request with this key is still being processed.                                                                                          |
-|       `412` | `/problems/plan-revision-conflict`          | A valid `If-Match` condition does not identify the current saveable plan revision.                                                         |
-|       `415` | `/problems/unsupported-media-type`          | Content-Type is missing or is not `application/json`.                                                                                      |
-|       `422` | `/problems/plan-validation-failed`          | The backend validator rejected the current plan revision.                                                                                  |
-|       `422` | `/problems/budget-exceeded`                 | Backend-computed group total or a member's spending exceeds the applicable budget/cap.                                                     |
-|       `428` | `/problems/precondition-required`           | Required `If-Match` header is missing.                                                                                                     |
-|       `429` | `/problems/rate-limit-exceeded`             | Caller exceeded the endpoint rate limit.                                                                                                   |
-|       `500` | `/problems/internal-error`                  | Unexpected server error.                                                                                                                   |
-|       `503` | `/problems/service-unavailable`             | Required persistence or validation infrastructure is temporarily unavailable.                                                              |
+| HTTP status | `type`                                                           | Meaning                                                                                                                                    |
+| ----------: | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+|       `400` | `urn:ai-travel-planner:problems:invalid-if-match`                | `If-Match` is malformed, weak, wildcard, or contains multiple ETag values.                                                                 |
+|       `400` | `urn:ai-travel-planner:problems:invalid-plan-id`                 | The `planId` path parameter is not a valid UUID.                                                                                           |
+|       `400` | `urn:ai-travel-planner:problems:invalid-request-body`            | The request body must be empty.                                                                                                            |
+|       `400` | `urn:ai-travel-planner:problems:invalid-idempotency-key`         | The `Idempotency-Key` is missing or does not match the accepted format.                                                                    |
+|       `401` | `urn:ai-travel-planner:problems:unauthenticated`                 | Missing, invalid, or expired bearer token.                                                                                                 |
+|       `404` | `urn:ai-travel-planner:problems:plan-not-found`                  | Plan does not exist, caller is not its owner, or caller is no longer an active member of the associated group.                             |
+|       `409` | `urn:ai-travel-planner:problems:plan-state-conflict`             | Plan exists but is deleted, archived, has no valid required group association, or is in another lifecycle state that prevents publication. |
+|       `409` | `urn:ai-travel-planner:problems:idempotency-key-reused`          | The same key was previously used with a different request fingerprint.                                                                     |
+|       `409` | `urn:ai-travel-planner:problems:idempotency-request-in-progress` | A request with this key is still being processed.                                                                                          |
+|       `412` | `urn:ai-travel-planner:problems:plan-revision-conflict`          | A valid `If-Match` condition does not identify the current saveable plan revision.                                                         |
+|       `415` | `urn:ai-travel-planner:problems:unsupported-media-type`          | Content-Type is missing or is not `application/json`.                                                                                      |
+|       `422` | `urn:ai-travel-planner:problems:plan-validation-failed`          | The backend validator rejected the current plan revision.                                                                                  |
+|       `422` | `urn:ai-travel-planner:problems:budget-exceeded`                 | Backend-computed group total or a member's spending exceeds the applicable budget/cap.                                                     |
+|       `428` | `urn:ai-travel-planner:problems:precondition-required`           | Required `If-Match` header is missing.                                                                                                     |
+|       `429` | `urn:ai-travel-planner:problems:rate-limit-exceeded`             | Caller exceeded the endpoint rate limit.                                                                                                   |
+|       `500` | `urn:ai-travel-planner:problems:internal-error`                  | Unexpected server error.                                                                                                                   |
+|       `503` | `urn:ai-travel-planner:problems:service-unavailable`             | Required persistence or validation infrastructure is temporarily unavailable.                                                              |
 
 A `403` is not returned for a plan the caller does not own or can no longer access because of group membership. Those cases intentionally use `404 plan-not-found` to avoid resource enumeration.
 
@@ -340,7 +340,7 @@ A `412` is used for a failed `If-Match` precondition. The server MUST NOT return
 
 ```json
 {
-  "type": "https://api.example.test/problems/plan-validation-failed",
+  "type": "urn:ai-travel-planner:problems:plan-validation-failed",
   "title": "Plan validation failed",
   "status": 422,
   "detail": "The current plan revision has one or more validator violations.",
@@ -390,7 +390,7 @@ Content-Type: application/problem+json
 
 ```json
 {
-  "type": "https://api.example.test/problems/plan-validation-failed",
+  "type": "urn:ai-travel-planner:problems:plan-validation-failed",
   "title": "Plan validation failed",
   "status": 422,
   "detail": "The current plan revision has one or more validator violations.",
