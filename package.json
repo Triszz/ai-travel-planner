@@ -10,7 +10,7 @@
     "lint": "npm run lint --workspace=api && npm run lint --workspace=web",
     "format:check": "prettier --check \"apps/api/**/*.{ts,tsx,js,jsx,json,md}\" \"apps/web/**/*.{ts,tsx,js,jsx,json,md}\"",
     "typecheck": "npm run typecheck --workspace=api && npm run typecheck --workspace=web",
-    "test": "npm run test --workspace=api"
+    "test": "npm run test --workspace=api && npm run test:e2e --workspace=api"
   },
   "devDependencies": {
     "prettier": "^3.4.2"
