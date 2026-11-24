@@ -6,8 +6,8 @@ import {
   Logger,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
+import { createProblemDetailsResponse } from './problem-details-response.js';
 import { randomUUID } from 'node:crypto';
-
 import { InvalidAccessTokenError } from '../../auth/invalid-access-token.error.js';
 import { ProblemDetailsException } from './problem-details.exception.js';
 
@@ -20,6 +20,21 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     const request = context.getRequest<Request>();
     const response = context.getResponse<Response>();
 
+    if (exception instanceof ProblemDetailsException) {
+      const problem = createProblemDetailsResponse(exception, request.path);
+
+      for (const [name, value] of Object.entries(problem.headers)) {
+        response.setHeader(name, value);
+      }
+
+      response
+        .status(problem.statusCode)
+        .type('application/problem+json')
+        .json(problem.body);
+
+      return;
+    }
+
     const traceId = randomUUID();
     const instance = request.path;
 
@@ -31,15 +46,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     let headers: Record<string, string> = {};
     let extensions: Record<string, unknown> = {};
 
-    if (exception instanceof ProblemDetailsException) {
-      status = exception.status;
-      code = exception.code;
-      type = exception.type;
-      title = exception.title;
-      detail = exception.detail;
-      headers = exception.headers;
-      extensions = exception.extensions;
-    } else if (exception instanceof InvalidAccessTokenError) {
+    if (exception instanceof InvalidAccessTokenError) {
       status = 401;
       type = 'unauthenticated';
       code = 'UNAUTHENTICATED';

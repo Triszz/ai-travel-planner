@@ -93,6 +93,8 @@ describe('PlansModule dependency injection', () => {
         publishedBy: 'user-1',
         snapshot: {},
         publishedAt: new Date('2026-11-22T10:00:00.000Z'),
+        groupId: 'group-di-test',
+        responseBody: {},
       };
 
       store.plans.set(plan.id, plan);

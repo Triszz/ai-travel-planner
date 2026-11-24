@@ -65,7 +65,7 @@ describe('calculateBudget', () => {
     ]);
   });
 
-  it('BUDGET-002: applies the lowest active member cap to every member', () => {
+  it('BUDGET-002: reports the lowest active member spending cap', () => {
     const result = calculateBudget(createInput());
 
     expect(result.lowestMemberSpendingCap).toBe(300_000);
@@ -158,6 +158,11 @@ describe('calculateBudget', () => {
     const result = calculateBudget(
       createInput({
         schedule: expensiveSchedule,
+        members: [
+          { memberId: 'user-a', spendingCapVnd: 300_000 },
+          { memberId: 'user-b', spendingCapVnd: 500_000 },
+          { memberId: 'user-c', spendingCapVnd: 400_000 },
+        ],
         pricedItems: [
           {
             placeId: 'place-001',
@@ -301,5 +306,65 @@ describe('calculateBudget', () => {
     expect(() => calculateBudget(input)).toThrow(
       new BudgetCalculationError('invalid-item-price'),
     );
+  });
+
+  it('BUDGET-015: checks each member against the lowest group spending cap', () => {
+    const input = createInput({
+      schedule: {
+        days: [
+          {
+            date: '2026-11-28',
+            stops: [
+              {
+                placeId: 'place-001',
+                startAt: '2026-11-28T08:00:00+07:00',
+                endAt: '2026-11-28T09:30:00+07:00',
+                selectedItems: [
+                  {
+                    itemId: 'item-001',
+                    quantity: 1,
+                    memberIds: ['user-a'],
+                  },
+                  {
+                    itemId: 'item-002',
+                    quantity: 1,
+                    memberIds: ['user-b'],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+      members: [
+        { memberId: 'user-a', spendingCapVnd: 500_000 },
+        { memberId: 'user-b', spendingCapVnd: 1_000_000 },
+      ],
+      pricedItems: [
+        {
+          placeId: 'place-001',
+          itemId: 'item-001',
+          unitPriceVnd: 400_000,
+        },
+        {
+          placeId: 'place-001',
+          itemId: 'item-002',
+          unitPriceVnd: 700_000,
+        },
+      ],
+      groupBudgetVnd: 1_200_000,
+    });
+
+    const result = calculateBudget(input);
+
+    expect(result.lowestMemberSpendingCap).toBe(500_000);
+
+    expect(result.memberSpending).toEqual([
+      { memberId: 'user-a', amount: 400_000, withinCap: true },
+      { memberId: 'user-b', amount: 700_000, withinCap: false },
+    ]);
+
+    expect(result.withinMemberCaps).toBe(false);
+    expect(result.passed).toBe(false);
   });
 });
