@@ -24,7 +24,8 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     const instance = request.path;
 
     let status = 500;
-    let code = 'internal-error';
+    let type = 'internal-error';
+    let code = 'INTERNAL_ERROR';
     let title = 'Internal Server Error';
     let detail = 'An unexpected error occurred.';
     let headers: Record<string, string> = {};
@@ -33,13 +34,15 @@ export class ProblemDetailsFilter implements ExceptionFilter {
     if (exception instanceof ProblemDetailsException) {
       status = exception.status;
       code = exception.code;
+      type = exception.type;
       title = exception.title;
       detail = exception.detail;
       headers = exception.headers;
       extensions = exception.extensions;
     } else if (exception instanceof InvalidAccessTokenError) {
       status = 401;
-      code = 'unauthenticated';
+      type = 'unauthenticated';
+      code = 'UNAUTHENTICATED';
       title = 'Unauthorized';
       detail = 'A valid bearer access token is required.';
       headers = {
@@ -51,12 +54,14 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       exception.message === 'Unexpected end of JSON input'
     ) {
       status = 400;
-      code = 'invalid-request-body';
+      type = 'invalid-request-body';
+      code = 'INVALID_REQUEST_BODY';
       title = 'Bad Request';
       detail = 'The request body must be valid JSON.';
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
-      code = 'http-error';
+      type = 'http-error';
+      code = 'HTTP_ERROR';
       title = 'HTTP Error';
       detail = 'The request could not be processed.';
     } else {
@@ -75,7 +80,7 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       .type('application/problem+json')
       .json({
         ...extensions,
-        type: `urn:ai-travel-planner:problems:${code}`,
+        type: `urn:ai-travel-planner:problems:${type}`,
         title,
         status,
         detail,

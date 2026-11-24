@@ -75,7 +75,8 @@ describe('ProblemDetailsFilter', () => {
 
     const exception = new ProblemDetailsException({
       status: 422,
-      code: 'plan-validation-failed',
+      type: 'plan-validation-failed',
+      code: 'PLAN_VALIDATION_FAILED',
       title: 'Unprocessable Content',
       detail: 'The plan is invalid.',
       extensions: {
@@ -95,7 +96,7 @@ describe('ProblemDetailsFilter', () => {
       'urn:ai-travel-planner:problems:plan-validation-failed',
     );
     expect(body.traceId).not.toBe('fake-trace-id');
-    expect(body.code).toBe('plan-validation-failed');
+    expect(body.code).toBe('PLAN_VALIDATION_FAILED');
   });
 
   it('FILTER-005: returns 401 with a Bearer authentication challenge', () => {
@@ -113,6 +114,6 @@ describe('ProblemDetailsFilter', () => {
     const body = response.json.mock.calls[0][0];
 
     expect(body.type).toBe('urn:ai-travel-planner:problems:unauthenticated');
-    expect(body.code).toBe('unauthenticated');
+    expect(body.code).toBe('UNAUTHENTICATED');
   });
 });
