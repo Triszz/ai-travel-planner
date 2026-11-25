@@ -203,3 +203,31 @@ Team: 23127376 — Hồ Gia Huy · 23127503 — Trần Thanh Trí
 **Changed:** Expanded `save-publication.e2e-spec.ts` with cases for successful replay, key reuse, in-progress requests, existing publications, expired records, deterministic error replay, authorization re-checks, revision conflicts and lifecycle changes. Added a concurrency test (`IDEM-009`) that gates the first request inside validation and sends a second HTTP request before releasing it.
 **Rejected:** Treating a seeded `in-progress` record test alone as proof of concurrent request handling; it does not exercise two overlapping HTTP requests. Also rejected interpreting the single-process concurrency test as proof of multi-instance concurrency safety.
 **By hand:** Implemented and ran the E2E tests. The developer reported that the isolated `IDEM-009` test passed, followed by the complete Save endpoint E2E suite (21/21) and publication repository suite (7/7). These results were reported by the developer and were not independently executed by ChatGPT.
+
+## 2026-11-25 — Phase 5: Contract test completion and CI verification
+
+**Tool:** ChatGPT.
+**Asked for:** Review the Save endpoint contract-test implementation and help verify that the tests cover the agreed authorization, validation, publication and idempotency behavior required by the PA#2 rubric.
+**Kept:** Keeping the endpoint contract as the source of truth; preserving tests as independent checks of implementation behavior; and using the required CI status check as the merge gate. The team completed the contract-test work through PR #15 (`update/contract-tests`), which was merged into `main`.
+**Changed:** The work moved from test planning and individual implementation phases to a consolidated contract-test suite. We reviewed the test commands and their expected results before treating the suite as evidence. The assistant emphasized that a successful test run alone does not prove that branch protection requires the CI check; these are separate requirements.
+**Rejected:** Treating a green local test run as proof that GitHub branch protection is enforced; claiming PostgreSQL transaction or distributed-concurrency guarantees from in-memory tests; and changing contract expectations merely to make implementation tests pass.
+**By hand:** Completed and reviewed the contract-test changes, ran the project quality checks, and merged PR #15. The developer reported that the required checks passed. PR #15 was merged into `main` on 2026-11-25.
+
+## 2026-11-25 — Phase 5: Deliberate ownership contract break
+
+**Tool:** ChatGPT.
+**Asked for:** Design and review a deliberate implementation failure that violates the `POST /plans/{planId}/save` ownership contract without modifying the contract or its tests, so the required CI workflow could demonstrate a real failing check.
+**Kept:** Removing only the initial plan-owner authorization guard from `PlansController`, while retaining the commit-time ownership check. This created an observable authorization failure before the commit stage and preserved the original contract tests as independent evidence.
+**Changed:** The deliberate break was isolated in commit `4602f5e` (`test(api): demonstrate missing plan ownership guard`) on branch `test/deliberate-ownership-break`. The authorization E2E tests exposed the regression: non-owner and inaccessible-plan requests returned `422` or `409` instead of the contract-required indistinguishable `404 plan-not-found`. The required GitHub Actions check failed on PR #16.
+**Rejected:** Modifying the contract, weakening the expected test assertions, deleting authorization tests, or introducing an artificial CI failure unrelated to the endpoint behavior. Also rejected merging the deliberately broken implementation.
+**By hand:** Removed the initial ownership guard, ran the targeted authorization E2E suite, inspected the resulting failures, committed the deliberate break, pushed the branch, and opened PR #16. The developer captured the failing CI result. The red CI run was recorded at [PR #16 failing CI run](https://github.com/Triszz/ai-travel-planner/actions/runs/45583217958/job/139098176736?pr=16).
+
+## 2026-11-25 — Phase 5: Restore ownership guard and verify the repair
+
+**Tool:** ChatGPT.
+**Asked for:** Review the minimal repair for the deliberate ownership regression, verify that the contract and tests remained unchanged, and check the resulting CI status before merging PR #16.
+**Kept:** Restoring the original initial ownership guard immediately after the plan-existence check and before group-association and subsequent state checks. The guard returns the same `404 plan-not-found` Problem Details response for a plan owned by another user.
+**Changed:** Restored the 12-line ownership guard in `PlansController` in commit `2e8c3aa` (`fix(api): restore plan ownership guard`). The repair kept the deliberate-break commit in the same PR, allowing the red-to-green history to remain visible. The required CI check subsequently completed successfully for the repaired head commit.
+**Rejected:** Changing the authorization tests or endpoint contract to accommodate the broken implementation; broad refactoring during a narrowly scoped repair; and claiming that the in-memory implementation proves database-level atomicity or multi-instance concurrency guarantees.
+**By hand:** Restored the guard, ran the targeted authorization E2E tests and the project quality checks, reviewed the staged diff, committed the repair, and pushed it to PR #16. The developer reported 11/11 targeted authorization E2E tests passing, 85/85 unit tests passing, 56/56 E2E tests passing, and successful lint, format, type-check and API build commands. The required GitHub Actions check was independently verified as successful for commit `2e8c3aa`. The developer subsequently merged PR #16 into `main`.
+**Evidence:** [PR #16](https://github.com/Triszz/ai-travel-planner/pull/16) · [Failing CI run](https://github.com/Triszz/ai-travel-planner/actions/runs/45583217958/job/139098176736?pr=16) · [Successful CI run](https://github.com/Triszz/ai-travel-planner/actions/runs/45585706320/job/139106634824)
