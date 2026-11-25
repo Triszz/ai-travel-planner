@@ -1,5 +1,6 @@
 export interface ProblemDetailsExceptionOptions {
   status: number;
+  type: string;
   code: string;
   title: string;
   detail: string;
@@ -10,6 +11,7 @@ export interface ProblemDetailsExceptionOptions {
 export class ProblemDetailsException extends Error {
   readonly status: number;
   readonly code: string;
+  readonly type: string;
   readonly title: string;
   readonly detail: string;
   readonly headers: Record<string, string>;
@@ -21,6 +23,7 @@ export class ProblemDetailsException extends Error {
     this.name = 'ProblemDetailsException';
     this.status = options.status;
     this.code = options.code;
+    this.type = options.type;
     this.title = options.title;
     this.detail = options.detail;
     this.headers = options.headers ?? {};

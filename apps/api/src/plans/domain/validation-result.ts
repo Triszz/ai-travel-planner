@@ -1,4 +1,5 @@
-export type ValidationViolationCode = 'SCHEDULE_INVALID' | 'BUDGET_EXCEEDED';
+export type ValidationViolationCode =
+  'SCHEDULE_INVALID' | 'BUDGET_EXCEEDED' | 'GROUP_BUDGET_EXCEEDED';
 
 export interface ValidationViolation {
   code: ValidationViolationCode;

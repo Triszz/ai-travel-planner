@@ -57,9 +57,9 @@ export class DefaultPlanValidator implements PlanValidator {
 
     if (!budget.withinGroupBudget) {
       violations.push({
-        code: 'BUDGET_EXCEEDED',
-        path: 'budget.groupTotal',
-        message: 'Group budget exceeded',
+        code: 'GROUP_BUDGET_EXCEEDED',
+        path: 'cost.groupTotal',
+        message: 'The group total exceeds the configured group budget.',
       });
     }
 

@@ -167,3 +167,39 @@ Team: 23127376 — Hồ Gia Huy · 23127503 — Trần Thanh Trí
 **Changed:** Corrected the proposed sequence: the test matrix had already been prepared, so the next step is to turn its applicable scenarios into executable tests, run them against the current application to establish the expected failures, and only then implement the service and controller. Test responsibilities remain separated between unit tests, NestJS E2E tests with in-memory repositories, PostgreSQL integration tests and fault-injection tests.
 **Rejected:** Treating the Markdown test matrix as proof that executable contract tests already exist; implementing the endpoint first and writing tests afterward; and claiming that in-memory tests prove PostgreSQL transaction atomicity or concurrency guarantees.
 **By hand:** Prepared the revised test matrix before this discussion and reviewed the proposed test-first sequence. The existence and current status of executable Save endpoint tests still need to be verified in the repository.
+
+## 2026-11-23 — Phase 2.1: Save endpoint authorization
+
+**Tool:** ChatGPT.
+**Asked for:** Review and guide the implementation of the authorization checks for `POST /plans/{planId}/save` against the approved endpoint contract.
+**Kept:** Owner-only access, the requirement that the owner must be an active member of the associated group, and the contract's indistinguishable `404 plan-not-found` response for missing plans, non-owners and inactive or missing memberships.
+**Changed:** Extended the controller to check plan ownership and active group membership before proceeding to later state checks. Moved the associated-group existence lookup after membership verification to avoid revealing group state to unauthorized callers. Added authorization test coverage, including the inactive-membership case (`AUTHZ-011`).
+**Rejected:** Returning different errors for a non-owner and an inactive member, and checking whether the associated group exists before verifying the caller's active membership.
+**By hand:** Implemented the controller and test changes, then ran the relevant API checks. The reported unit and E2E test results passed; these results were reported by the developer and were not independently executed by ChatGPT.
+
+## 2026-11-23 — Phase 3: Plan and budget validation integration
+
+**Tool:** ChatGPT.
+**Asked for:** Review and guide the integration of revision resolution, schedule validation and backend budget enforcement into the Save endpoint, following the approved contract.
+**Kept:** Resolving the exact plan revision from the `If-Match` ETag; rejecting stale revisions with `412 plan-revision-conflict`; validating the resolved revision through `DefaultPlanValidator`; and returning `422` Problem Details for validation and budget failures.
+**Changed:** Integrated the revision repository and validator into `PlansController`. Separated `plan-validation-failed` from `budget-exceeded`, including distinct violation codes for member spending-cap and group-budget failures. Added safe aggregate budget information to budget error responses while excluding per-member spending details. Kept the group-existence lookup after active-membership authorization.
+**Rejected:** Treating a successful schedule validation as proof that the budget passed; trusting client- or model-provided cost values; exposing `memberSpending` in error responses; and treating the controller's default `201` response as proof that a publication had been created.
+**By hand:** Implemented the controller integration, updated validation violation codes and group-budget messages, and added E2E coverage for successful validation, schedule-validation failure, member spending-cap failure and group-budget failure. The developer reported that API type checking passed, 82 unit tests and 33 E2E tests passed, lint and format checks passed, and `git diff --check` reported no issues. Publication persistence and idempotency remain for Phase 4.
+
+## 2026-11-24 — Phase 4: Publication and idempotency implementation
+
+**Tool:** ChatGPT.
+**Asked for:** Review and guide the implementation of publication creation, immutable snapshots, idempotency handling and request ordering for `POST /plans/{planId}/save` against the approved endpoint contract.
+**Kept:** The contract-defined idempotency scope and fingerprint; the 24-hour retention period; replay of completed responses; rejection of key reuse with a different fingerprint; lookup of an existing publication before stale-ETag rejection; and re-checking ownership and active group membership before committing a publication.
+**Changed:** Extended the in-memory publication model and repository to retain the group association and original response representation. Added in-memory idempotency records for in-progress and completed requests, stored deterministic business-error responses, and added a reservation/re-check flow to reject overlapping requests using the same key.
+**Rejected:** Treating an in-memory reservation as a distributed lock or claiming that the current implementation guarantees atomicity across multiple API instances. Also rejected checking the current ETag before looking up an already-published revision, because that would incorrectly reject a repeat save after the plan advances.
+**By hand:** Implemented the controller, repository, store and fixture changes; reviewed the request-ordering logic; and ran the publication repository tests and Save endpoint E2E tests. The developer reported that the repository suite passed 7/7 and the Save endpoint E2E suite passed 21/21. These results were reported by the developer and were not independently executed by ChatGPT.
+
+## 2026-11-24 — Phase 4: Publication and idempotency test coverage
+
+**Tool:** ChatGPT.
+**Asked for:** Review and guide additional E2E tests for idempotency replay, deterministic business errors, authorization changes during validation, revision changes, immutable snapshots and concurrent requests.
+**Kept:** Tests that verify observable HTTP behavior and stored side effects, rather than relying only on mocked repository calls. Added an overlapping-request scenario to verify that a second request using the same in-progress key is rejected while the first request is still validating.
+**Changed:** Expanded `save-publication.e2e-spec.ts` with cases for successful replay, key reuse, in-progress requests, existing publications, expired records, deterministic error replay, authorization re-checks, revision conflicts and lifecycle changes. Added a concurrency test (`IDEM-009`) that gates the first request inside validation and sends a second HTTP request before releasing it.
+**Rejected:** Treating a seeded `in-progress` record test alone as proof of concurrent request handling; it does not exercise two overlapping HTTP requests. Also rejected interpreting the single-process concurrency test as proof of multi-instance concurrency safety.
+**By hand:** Implemented and ran the E2E tests. The developer reported that the isolated `IDEM-009` test passed, followed by the complete Save endpoint E2E suite (21/21) and publication repository suite (7/7). These results were reported by the developer and were not independently executed by ChatGPT.

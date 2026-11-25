@@ -359,7 +359,7 @@ A `412` is used for a failed `If-Match` precondition. The server MUST NOT return
 }
 ```
 
-`code`, `planId`, `planRevision`, `violations`, and `traceId` are extension members. They are present only where relevant. Clients MUST branch on the stable `type` or `code`, not parse the human-readable `detail`.
+`code`, `planId`, `planRevision`, `violations`, `cost`, and `traceId` are extension members. They are present only where relevant. The `cost` object is included for budget-related errors and contains backend-computed values. Clients MUST branch on the stable `type` or `code`, not parse the human-readable `detail`.
 
 ### 6.3 Error-specific response requirements
 
@@ -381,7 +381,7 @@ A `412` is used for a failed `If-Match` precondition. The server MUST NOT return
 - `internal-error`: `500`; generic detail only, with a trace ID.
 - `service-unavailable`: `503`; generic detail and `Retry-After` when known.
 
-### 6.4 Example validation rejection
+### 6.4 Example budget rejection
 
 ```http
 HTTP/1.1 422 Unprocessable Content
@@ -390,12 +390,12 @@ Content-Type: application/problem+json
 
 ```json
 {
-  "type": "urn:ai-travel-planner:problems:plan-validation-failed",
-  "title": "Plan validation failed",
+  "type": "urn:ai-travel-planner:problems:budget-exceeded",
+  "title": "Budget Exceeded",
   "status": 422,
-  "detail": "The current plan revision has one or more validator violations.",
+  "detail": "The plan exceeds the applicable budget or spending cap.",
   "instance": "/api/v1/plans/7b3c4d5e-6f70-4a81-9b2c-3d4e5f607182/save",
-  "code": "PLAN_VALIDATION_FAILED",
+  "code": "BUDGET_EXCEEDED",
   "planId": "7b3c4d5e-6f70-4a81-9b2c-3d4e5f607182",
   "planRevision": 12,
   "violations": [
@@ -405,6 +405,15 @@ Content-Type: application/problem+json
       "message": "The group total exceeds the configured group budget."
     }
   ],
+  "cost": {
+    "currency": "VND",
+    "groupTotal": 1200000,
+    "groupBudget": 1000000,
+    "lowestMemberSpendingCap": 500000,
+    "withinGroupBudget": false,
+    "withinMemberCaps": true,
+    "passed": false
+  },
   "traceId": "01JXYZABCDEF0123456789"
 }
 ```

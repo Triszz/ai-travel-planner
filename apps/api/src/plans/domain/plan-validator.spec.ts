@@ -122,7 +122,9 @@ describe('DefaultPlanValidator', () => {
     expect(result.validation.status).toBe('failed');
     expect(result.validation.violations).toContainEqual(
       expect.objectContaining({
-        code: 'BUDGET_EXCEEDED',
+        code: 'GROUP_BUDGET_EXCEEDED',
+        path: 'cost.groupTotal',
+        message: 'The group total exceeds the configured group budget.',
       }),
     );
     expect(result.scheduleStatus).toBe('valid');

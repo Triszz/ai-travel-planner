@@ -15,6 +15,8 @@ describe('InMemoryPublicationRepository', () => {
     publishedBy: 'user-1',
     snapshot: {},
     publishedAt: new Date('2026-11-22T10:00:00.000Z'),
+    groupId: 'group-1',
+    responseBody: {},
     ...overrides,
   });
 
