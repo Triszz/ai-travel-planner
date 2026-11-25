@@ -24,8 +24,6 @@ The PA#2 implementation uses in-memory repositories for the Save endpoint test p
 
 The submission also does not claim that the first-parent history command proves the absence of every possible direct push; it records only that no non-merge commit was observed on that history after branch protection was enabled.
 
-The CI run triggered by pushing the final `pa2` tag is not yet linked in `PA2.md` at the time this report is drafted. The final report and ZIP score must be reconciled after the tag workflow has run and its actual URL has been added.
-
 ## What I would do differently
 
 I would define the evidence required for each rubric criterion before implementation and keep the evidence index updated as each gate is completed. I would also add a PostgreSQL-backed integration test layer before making any claims about transaction atomicity or concurrency beyond the current single-process, in-memory implementation.
