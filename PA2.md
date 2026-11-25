@@ -71,7 +71,7 @@ The required `check` status check passed for the repaired commit.
 
 **Tag:** `pa2`
 
-**CI run:** _TODO: Add the GitHub Actions run URL triggered by pushing tag `pa2`._
+**CI run:** [Successful GitHub Actions run for tag `pa2`](https://github.com/Triszz/ai-travel-planner/actions/runs/45603750379)
 
 The submission tag must point to the final commit being submitted. The CI workflow runs the repository checks for tags matching `pa*`.
 
