@@ -65,6 +65,15 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       code = 'INVALID_REQUEST_BODY';
       title = 'Bad Request';
       detail = 'The request body must be valid JSON.';
+    } else if (
+      exception instanceof HttpException &&
+      exception.getStatus() === 503
+    ) {
+      status = 503;
+      type = 'service-unavailable';
+      code = 'SERVICE_UNAVAILABLE';
+      title = 'Service Unavailable';
+      detail = 'The service is temporarily unavailable.';
     } else if (exception instanceof HttpException) {
       status = exception.getStatus();
       type = 'http-error';

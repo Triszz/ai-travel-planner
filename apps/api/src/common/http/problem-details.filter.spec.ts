@@ -1,4 +1,9 @@
-import { ArgumentsHost, BadRequestException, Logger } from '@nestjs/common';
+import {
+  ArgumentsHost,
+  BadRequestException,
+  Logger,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ProblemDetailsFilter } from './problem-details.filter.js';
@@ -115,5 +120,61 @@ describe('ProblemDetailsFilter', () => {
 
     expect(body.type).toBe('urn:ai-travel-planner:problems:unauthenticated');
     expect(body.code).toBe('UNAUTHENTICATED');
+  });
+
+  it('FILTER-006: maps a service unavailable exception to the service-unavailable problem type', () => {
+    const filter = new ProblemDetailsFilter();
+
+    filter.catch(
+      new ServiceUnavailableException('database connection details'),
+      host,
+    );
+
+    const body = response.json.mock.calls[0][0];
+
+    expect(response.status).toHaveBeenCalledWith(503);
+    expect(response.type).toHaveBeenCalledWith('application/problem+json');
+    expect(body).toMatchObject({
+      type: 'urn:ai-travel-planner:problems:service-unavailable',
+      title: 'Service Unavailable',
+      status: 503,
+      code: 'SERVICE_UNAVAILABLE',
+      instance: '/api/v1/test',
+    });
+    expect(body.detail).not.toContain('database connection details');
+    expect(body.traceId).toBeTruthy();
+  });
+
+  it('FILTER-007: preserves the Retry-After header for a rate-limit ProblemDetailsException', () => {
+    const filter = new ProblemDetailsFilter();
+
+    const exception = new ProblemDetailsException({
+      status: 429,
+      type: 'rate-limit-exceeded',
+      code: 'RATE_LIMIT_EXCEEDED',
+      title: 'Too Many Requests',
+      detail: 'The request rate limit has been exceeded.',
+      headers: {
+        'Retry-After': '30',
+      },
+    });
+
+    filter.catch(exception, host);
+
+    const body = response.json.mock.calls[0][0];
+
+    expect(response.status).toHaveBeenCalledWith(429);
+    expect(response.type).toHaveBeenCalledWith('application/problem+json');
+    expect(response.setHeader).toHaveBeenCalledWith('Retry-After', '30');
+
+    expect(body).toMatchObject({
+      type: 'urn:ai-travel-planner:problems:rate-limit-exceeded',
+      title: 'Too Many Requests',
+      status: 429,
+      code: 'RATE_LIMIT_EXCEEDED',
+      instance: '/api/v1/test',
+    });
+    expect(body.detail).toBe('The request rate limit has been exceeded.');
+    expect(body.traceId).toBeTruthy();
   });
 });

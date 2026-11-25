@@ -397,6 +397,57 @@ describe('POST /api/v1/plans/:planId/save — publication', () => {
     expect(store.publications.size).toBe(1);
   });
 
+  it('PUB-012: rejects an initially stale ETag and returns the current ETag without persisting an idempotency record', async () => {
+    const nextRevision = {
+      id: 'revision-002',
+      planId,
+      revisionNumber: 13,
+      content: structuredClone(schedule),
+      etag: '"revision-002"',
+      createdAt: new Date('2026-11-23T10:00:00.000Z'),
+    };
+
+    store.revisions.set(nextRevision.id, nextRevision);
+
+    const currentPlan = store.plans.get(planId);
+    expect(currentPlan).toBeDefined();
+
+    currentPlan!.currentRevisionId = nextRevision.id;
+    currentPlan!.currentRevisionNumber = nextRevision.revisionNumber;
+
+    const validator = app.get(DefaultPlanValidator);
+    const validateSpy = vi.spyOn(validator, 'validate');
+
+    const key = 'pub-initially-stale-etag-key';
+
+    const response = await request(app.getHttpServer())
+      .post(`/api/v1/plans/${planId}/save`)
+      .set('Authorization', 'Bearer owner-token')
+      .set('Idempotency-Key', key)
+      .set('If-Match', revision.etag)
+      .set('Content-Type', 'application/json');
+
+    const scope = JSON.stringify([
+      'owner-user',
+      `POST:/api/v1/plans/${planId}/save`,
+      key,
+    ]);
+
+    expect(response.status).toBe(412);
+    expect(response.body.code).toBe('PLAN_REVISION_CONFLICT');
+    expect(response.body.type).toBe(
+      'urn:ai-travel-planner:problems:plan-revision-conflict',
+    );
+    expect(response.headers['content-type']).toMatch(
+      /application\/problem\+json/,
+    );
+    expect(response.headers.etag).toBe(nextRevision.etag);
+
+    expect(validateSpy).not.toHaveBeenCalled();
+    expect(store.publications.size).toBe(0);
+    expect(store.idempotencyRecords.has(scope)).toBe(false);
+  });
+
   it('IDEM-004: does not create a duplicate publication after the idempotency record expires', async () => {
     const key = 'idem-expired-key';
 
