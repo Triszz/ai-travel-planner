@@ -230,18 +230,6 @@ export class PlansController {
       });
     }
 
-    // 2. Only the plan owner may publish it.
-    // Check ownership before revealing any plan state.
-    if (plan.ownerId !== userId) {
-      throw new ProblemDetailsException({
-        status: 404,
-        type: 'plan-not-found',
-        code: 'PLAN_NOT_FOUND',
-        title: 'Not Found',
-        detail: 'The requested plan was not found.',
-      });
-    }
-
     // 3. An existing plan must have a group association.
     if (!plan.groupId) {
       throw new ProblemDetailsException({
