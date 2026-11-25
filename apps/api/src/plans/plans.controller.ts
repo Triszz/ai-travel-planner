@@ -441,7 +441,13 @@ export class PlansController {
               extensions: {
                 planId,
                 planRevision: revision.revisionNumber,
-                violations: validationResult.validation.violations,
+                violations: validationResult.validation.violations.map(
+                  ({ code, path, message }) => ({
+                    code,
+                    path,
+                    message,
+                  }),
+                ),
                 cost: {
                   currency: budget.currency,
                   groupTotal: budget.groupTotal,
@@ -492,6 +498,22 @@ export class PlansController {
           title: 'Not Found',
           detail: 'The requested plan was not found.',
         });
+      }
+
+      if (latestPlan.groupId === null) {
+        return this.storeProblemResponse(
+          new ProblemDetailsException({
+            status: 409,
+            type: 'plan-state-conflict',
+            code: 'PLAN_STATE_CONFLICT',
+            title: 'Conflict',
+            detail: 'The plan is no longer associated with a group.',
+          }),
+          request.path,
+          idempotencyScope,
+          fingerprint,
+          response,
+        );
       }
 
       const latestMembership =
@@ -581,14 +603,26 @@ export class PlansController {
           status: 'passed' as const,
           validatedRevision: validationResult.validation.validatedRevision,
           validatedAt: validationResult.validation.validatedAt.toISOString(),
-          violations: validationResult.validation.violations,
+          violations: validationResult.validation.violations.map(
+            ({ code, path, message }) => ({
+              code,
+              path,
+              message,
+            }),
+          ),
         },
         cost: {
           currency: budget.currency,
           groupTotal: budget.groupTotal,
           groupBudget: budget.groupBudget,
           lowestMemberSpendingCap: budget.lowestMemberSpendingCap,
-          memberSpending: budget.memberSpending,
+          memberSpending: budget.memberSpending.map(
+            ({ memberId, amount, withinCap }) => ({
+              memberId,
+              amount,
+              withinCap,
+            }),
+          ),
           withinGroupBudget: budget.withinGroupBudget,
           withinMemberCaps: budget.withinMemberCaps,
         },

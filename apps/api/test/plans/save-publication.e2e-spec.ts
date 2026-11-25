@@ -687,6 +687,35 @@ describe('POST /api/v1/plans/:planId/save — publication', () => {
     expect(store.idempotencyRecords.size).toBe(0);
   });
 
+  it('AUTHZ-014: rejects publication if the plan loses its group association during validation', async () => {
+    const validator = app.get(DefaultPlanValidator);
+    const originalValidate = validator.validate.bind(validator);
+
+    vi.spyOn(validator, 'validate').mockImplementation(async (...args) => {
+      const result = await originalValidate(...args);
+
+      const currentPlan = store.plans.get(planId);
+      expect(currentPlan).toBeDefined();
+
+      currentPlan!.groupId = null;
+
+      return result;
+    });
+
+    const response = await savePlan('commit-group-association-removed-key');
+
+    expect(response.status).toBe(409);
+    expect(response.headers['content-type']).toMatch(
+      /application\/problem\+json/,
+    );
+    expect(response.body).toMatchObject({
+      status: 409,
+      code: 'PLAN_STATE_CONFLICT',
+      type: 'urn:ai-travel-planner:problems:plan-state-conflict',
+    });
+    expect(store.publications.size).toBe(0);
+  });
+
   it('PUB-010: rejects publication if the plan revision changes after validation', async () => {
     const validator = app.get(DefaultPlanValidator);
     const originalValidate = validator.validate.bind(validator);
